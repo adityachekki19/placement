@@ -12,21 +12,50 @@ st.set_page_config(
 )
 
 # =========================================================
+# CUSTOM CSS
+# =========================================================
+st.markdown("""
+<style>
+
+.main {
+    background-color: #f5f7fa;
+}
+
+.metric-card {
+    background-color: white;
+    padding: 15px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
+}
+
+.insight-box {
+    background-color: #ffffff;
+    padding: 15px;
+    border-left: 5px solid #4CAF50;
+    border-radius: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# =========================================================
 # TITLE
 # =========================================================
 st.title("🎓 Student Engagement Intelligence System")
 
 st.markdown("""
-### LMS + Behavior → Learning → Placement
+### 📚 LMS + Behavior → Learning → Placement
 
-This dashboard analyzes:
+This intelligent dashboard helps colleges identify:
 
-✅ Attendance  
-✅ LMS Activity  
-✅ Quiz Performance  
-✅ Doubt Solving  
-✅ Learning Engagement  
-✅ Placement Readiness  
+✅ High performers  
+✅ Passive learners  
+✅ Placement readiness  
+✅ Risk students  
+✅ Engagement trends  
 """)
 
 # =========================================================
@@ -39,7 +68,7 @@ def load_data():
 
     df = pd.read_csv(DATA_URL)
 
-    # Clean column names
+    # Clean columns
     df.columns = (
         df.columns
         .str.strip()
@@ -53,13 +82,13 @@ def load_data():
 df = load_data()
 
 # =========================================================
-# SHOW DATASET
+# VIEW DATA
 # =========================================================
 with st.expander("📂 View Dataset"):
     st.dataframe(df.head(20))
 
 # =========================================================
-# COLUMN FINDER
+# AUTO DETECT COLUMNS
 # =========================================================
 def find_column(keywords):
 
@@ -72,9 +101,6 @@ def find_column(keywords):
 
     return None
 
-# =========================================================
-# DETECT COLUMNS
-# =========================================================
 attendance_col = find_column(["attendance"])
 quiz_col = find_column(["quiz"])
 video_col = find_column(["video", "completion"])
@@ -82,68 +108,55 @@ login_col = find_column(["login"])
 time_col = find_column(["time"])
 videos_col = find_column(["videos", "watched"])
 doubt_col = find_column(["doubt"])
-peer_col = find_column(["peer"])
 hackathon_col = find_column(["hackathon"])
 workshop_col = find_column(["workshop"])
 
 # =========================================================
-# SAFE DATA FUNCTION
+# SAFE DATA
 # =========================================================
-def safe_data(column_name):
+def safe_data(col):
 
-    if column_name is None:
+    if col is None:
         return pd.Series([0] * len(df))
 
     return pd.to_numeric(
-        df[column_name],
+        df[col],
         errors="coerce"
     ).fillna(0)
 
-# =========================================================
-# SAFE DATA
-# =========================================================
-attendance_data = safe_data(attendance_col)
-quiz_data = safe_data(quiz_col)
-video_data = safe_data(video_col)
-login_data = safe_data(login_col)
-time_data = safe_data(time_col)
-videos_data = safe_data(videos_col)
-doubt_data = safe_data(doubt_col)
-peer_data = safe_data(peer_col)
-hackathon_data = safe_data(hackathon_col)
-workshop_data = safe_data(workshop_col)
+attendance = safe_data(attendance_col)
+quiz = safe_data(quiz_col)
+video = safe_data(video_col)
+login = safe_data(login_col)
+time_spent = safe_data(time_col)
+videos = safe_data(videos_col)
+doubts = safe_data(doubt_col)
+hackathons = safe_data(hackathon_col)
+workshops = safe_data(workshop_col)
 
 # =========================================================
-# CREATE METRICS
+# CREATE SCORES
 # =========================================================
 df["Engagement_Score"] = (
-    attendance_data * 0.3 +
-    login_data * 5 +
-    time_data * 2 +
-    videos_data * 0.5 +
-    doubt_data * 3
+    attendance * 0.3 +
+    login * 5 +
+    time_spent * 2 +
+    doubts * 3 +
+    videos * 0.5
 )
 
 df["Learning_Score"] = (
-    quiz_data *
-    video_data / 100
-)
-
-df["Interaction_Score"] = (
-    doubt_data +
-    peer_data +
-    hackathon_data +
-    workshop_data
+    quiz *
+    video / 100
 )
 
 df["Placement_Readiness"] = (
-    df["Engagement_Score"] * 0.4 +
-    df["Learning_Score"] * 0.4 +
-    df["Interaction_Score"] * 0.2
+    df["Engagement_Score"] * 0.5 +
+    df["Learning_Score"] * 0.5
 )
 
 # =========================================================
-# SIDEBAR FILTERS
+# SIDEBAR
 # =========================================================
 st.sidebar.header("🔍 Filters")
 
@@ -164,32 +177,32 @@ if "Department" in filtered_df.columns:
 # =========================================================
 # FILTERED DATA
 # =========================================================
-attendance_filtered = pd.to_numeric(
+attendance_f = pd.to_numeric(
     filtered_df[attendance_col],
     errors="coerce"
 ).fillna(0)
 
-quiz_filtered = pd.to_numeric(
+quiz_f = pd.to_numeric(
     filtered_df[quiz_col],
     errors="coerce"
 ).fillna(0)
 
-video_filtered = pd.to_numeric(
+video_f = pd.to_numeric(
     filtered_df[video_col],
     errors="coerce"
 ).fillna(0)
 
-login_filtered = pd.to_numeric(
+login_f = pd.to_numeric(
     filtered_df[login_col],
     errors="coerce"
 ).fillna(0)
 
-time_filtered = pd.to_numeric(
+time_f = pd.to_numeric(
     filtered_df[time_col],
     errors="coerce"
 ).fillna(0)
 
-doubt_filtered = pd.to_numeric(
+doubt_f = pd.to_numeric(
     filtered_df[doubt_col],
     errors="coerce"
 ).fillna(0)
@@ -203,140 +216,150 @@ c1, c2, c3, c4 = st.columns(4)
 
 with c1:
     st.metric(
-        "Average Attendance",
-        f"{attendance_filtered.mean():.2f}%"
+        "📌 Avg Attendance",
+        f"{attendance_f.mean():.1f}%"
     )
 
 with c2:
     st.metric(
-        "Average Quiz Score",
-        f"{quiz_filtered.mean():.2f}"
+        "📝 Avg Quiz Score",
+        f"{quiz_f.mean():.1f}"
     )
 
 with c3:
     st.metric(
-        "Average Engagement",
-        f"{filtered_df['Engagement_Score'].mean():.2f}"
+        "🔥 Avg Engagement",
+        f"{filtered_df['Engagement_Score'].mean():.1f}"
     )
 
 with c4:
     st.metric(
-        "Placement Readiness",
-        f"{filtered_df['Placement_Readiness'].mean():.2f}"
+        "🚀 Placement Readiness",
+        f"{filtered_df['Placement_Readiness'].mean():.1f}"
     )
+
+# =========================================================
+# STUDENT HEALTH METER
+# =========================================================
+st.header("🧠 Student Health Meter")
+
+high = len(filtered_df[filtered_df["Engagement_Score"] > 120])
+medium = len(filtered_df[
+    (filtered_df["Engagement_Score"] > 70) &
+    (filtered_df["Engagement_Score"] <= 120)
+])
+low = len(filtered_df[filtered_df["Engagement_Score"] <= 70])
+
+health_df = pd.DataFrame({
+    "Category": ["High", "Medium", "Low"],
+    "Students": [high, medium, low]
+})
+
+fig0, ax0 = plt.subplots(figsize=(7, 4))
+
+ax0.bar(
+    health_df["Category"],
+    health_df["Students"],
+    color=["green", "orange", "red"]
+)
+
+for i, v in enumerate(health_df["Students"]):
+    ax0.text(i, v + 1, str(v), ha="center", fontsize=12)
+
+ax0.set_title("Overall Student Engagement Health")
+
+st.pyplot(fig0)
 
 # =========================================================
 # ATTENDANCE ANALYSIS
 # =========================================================
-st.header("📌 Attendance vs Quiz Performance")
+st.header("📌 Attendance Impact")
 
 attendance_bins = pd.cut(
-    attendance_filtered,
+    attendance_f,
     bins=[0, 60, 80, 100],
     labels=["Low", "Medium", "High"]
 )
 
 attendance_analysis = pd.DataFrame({
-    "Attendance_Level": attendance_bins,
-    "Quiz_Score": quiz_filtered
+    "Attendance": attendance_bins,
+    "Quiz": quiz_f
 })
 
 avg_scores = attendance_analysis.groupby(
-    "Attendance_Level"
-)["Quiz_Score"].mean()
+    "Attendance"
+)["Quiz"].mean()
 
 fig1, ax1 = plt.subplots(figsize=(8, 5))
 
-avg_scores.plot(
-    kind="bar",
-    ax=ax1,
+bars = ax1.bar(
+    avg_scores.index.astype(str),
+    avg_scores.values,
     color=["red", "orange", "green"]
 )
 
-ax1.set_title("Average Quiz Score by Attendance")
-ax1.set_xlabel("Attendance Category")
+for bar in bars:
+    y = bar.get_height()
+    ax1.text(
+        bar.get_x() + bar.get_width()/2,
+        y + 1,
+        round(y, 1),
+        ha='center'
+    )
+
+ax1.set_title("Attendance vs Quiz Performance")
 ax1.set_ylabel("Average Quiz Score")
 
 st.pyplot(fig1)
 
-st.info("""
-Students with higher attendance perform better in quizzes.
-""")
+st.markdown("""
+<div class="insight-box">
+✅ Students with high attendance consistently score better.
+</div>
+""", unsafe_allow_html=True)
 
 # =========================================================
 # LOGIN ANALYSIS
 # =========================================================
-st.header("💻 Login Frequency Analysis")
+st.header("💻 LMS Usage Analysis")
 
 login_bins = pd.cut(
-    login_filtered,
+    login_f,
     bins=[0, 2, 5, 10],
-    labels=["Low Login", "Medium Login", "High Login"]
+    labels=["Low", "Medium", "High"]
 )
 
 login_analysis = pd.DataFrame({
-    "Login_Category": login_bins,
+    "Login": login_bins,
     "Engagement": filtered_df["Engagement_Score"]
 })
 
-avg_engagement = login_analysis.groupby(
-    "Login_Category"
+avg_login = login_analysis.groupby(
+    "Login"
 )["Engagement"].mean()
 
 fig2, ax2 = plt.subplots(figsize=(8, 5))
 
-avg_engagement.plot(
-    kind="bar",
-    ax=ax2,
-    color=["red", "orange", "green"]
+ax2.plot(
+    avg_login.index.astype(str),
+    avg_login.values,
+    marker="o",
+    linewidth=4
 )
 
+for i, v in enumerate(avg_login.values):
+    ax2.text(i, v + 2, round(v, 1), ha='center')
+
 ax2.set_title("Login Frequency vs Engagement")
-ax2.set_ylabel("Average Engagement Score")
+ax2.set_ylabel("Engagement Score")
 
 st.pyplot(fig2)
 
-st.success("""
-Regular LMS users show higher engagement levels.
-""")
-
-# =========================================================
-# TIME SPENT ANALYSIS
-# =========================================================
-st.header("⏰ Time Spent Analysis")
-
-time_bins = pd.cut(
-    time_filtered,
-    bins=[0, 5, 15, 30, 100],
-    labels=["Low", "Medium", "High", "Overload"]
-)
-
-time_analysis = pd.DataFrame({
-    "Time_Category": time_bins,
-    "Placement": filtered_df["Placement_Readiness"]
-})
-
-avg_placement = time_analysis.groupby(
-    "Time_Category"
-)["Placement"].mean()
-
-fig3, ax3 = plt.subplots(figsize=(8, 5))
-
-avg_placement.plot(
-    kind="line",
-    marker="o",
-    linewidth=3,
-    ax=ax3
-)
-
-ax3.set_title("Time Spent vs Placement Readiness")
-ax3.set_ylabel("Placement Readiness")
-
-st.pyplot(fig3)
-
-st.warning("""
-Optimal learning time improves placement readiness.
-""")
+st.markdown("""
+<div class="insight-box">
+🔥 Regular LMS usage increases engagement significantly.
+</div>
+""", unsafe_allow_html=True)
 
 # =========================================================
 # VIDEO ANALYSIS
@@ -344,36 +367,41 @@ Optimal learning time improves placement readiness.
 st.header("🎥 Video Completion Analysis")
 
 video_bins = pd.cut(
-    video_filtered,
+    video_f,
     bins=[0, 50, 80, 100],
     labels=["Low", "Medium", "High"]
 )
 
 video_analysis = pd.DataFrame({
-    "Video_Category": video_bins,
-    "Quiz": quiz_filtered
+    "Video": video_bins,
+    "Quiz": quiz_f
 })
 
-avg_quiz = video_analysis.groupby(
-    "Video_Category"
+avg_video = video_analysis.groupby(
+    "Video"
 )["Quiz"].mean()
 
-fig4, ax4 = plt.subplots(figsize=(8, 5))
+fig3, ax3 = plt.subplots(figsize=(8, 5))
 
-avg_quiz.plot(
-    kind="bar",
-    color=["red", "orange", "green"],
-    ax=ax4
+bars = ax3.bar(
+    avg_video.index.astype(str),
+    avg_video.values,
+    color=["red", "orange", "green"]
 )
 
-ax4.set_title("Video Completion vs Quiz Performance")
-ax4.set_ylabel("Average Quiz Score")
+for bar in bars:
+    y = bar.get_height()
+    ax3.text(
+        bar.get_x() + bar.get_width()/2,
+        y + 1,
+        round(y, 1),
+        ha='center'
+    )
 
-st.pyplot(fig4)
+ax3.set_title("Video Completion vs Quiz Score")
+ax3.set_ylabel("Average Quiz Score")
 
-st.info("""
-Students completing videos perform better in quizzes.
-""")
+st.pyplot(fig3)
 
 # =========================================================
 # DOUBT ANALYSIS
@@ -381,59 +409,47 @@ Students completing videos perform better in quizzes.
 st.header("❓ Doubt Solving Analysis")
 
 doubt_bins = pd.cut(
-    doubt_filtered,
+    doubt_f,
     bins=[-1, 0, 5, 20],
     labels=["No Doubts", "Some Doubts", "Active Learners"]
 )
 
 doubt_analysis = pd.DataFrame({
-    "Doubt_Category": doubt_bins,
-    "Quiz": quiz_filtered
+    "Doubt": doubt_bins,
+    "Quiz": quiz_f
 })
 
 avg_doubt = doubt_analysis.groupby(
-    "Doubt_Category"
+    "Doubt"
 )["Quiz"].mean()
 
-fig5, ax5 = plt.subplots(figsize=(8, 5))
+fig4, ax4 = plt.subplots(figsize=(8, 5))
 
-avg_doubt.plot(
-    kind="bar",
-    color=["red", "orange", "green"],
-    ax=ax5
+bars = ax4.bar(
+    avg_doubt.index.astype(str),
+    avg_doubt.values,
+    color=["red", "orange", "green"]
 )
 
-ax5.set_title("Doubt Solving vs Quiz Performance")
-ax5.set_ylabel("Average Quiz Score")
+for bar in bars:
+    y = bar.get_height()
+    ax4.text(
+        bar.get_x() + bar.get_width()/2,
+        y + 1,
+        round(y, 1),
+        ha='center'
+    )
 
-st.pyplot(fig5)
+ax4.set_title("Doubt Solving vs Quiz Score")
+ax4.set_ylabel("Average Quiz Score")
 
-st.success("""
-Students asking doubts generally score higher.
-""")
+st.pyplot(fig4)
 
-# =========================================================
-# EVENT PARTICIPATION
-# =========================================================
-st.header("🏆 Event Participation")
-
-event_data = pd.Series({
-    "Hackathons": hackathon_data.sum(),
-    "Workshops": workshop_data.sum()
-})
-
-fig6, ax6 = plt.subplots(figsize=(7, 5))
-
-event_data.plot(
-    kind="pie",
-    autopct="%1.1f%%",
-    ax=ax6
-)
-
-ax6.set_ylabel("")
-ax6.set_title("Student Event Participation")
-
-st.pyplot(fig6)
+st.markdown("""
+<div class="insight-box">
+🧠 Students asking doubts perform significantly better.
+</div>
+""", unsafe_allow_html=True)
 
 # =========================================================
 # STUDENT SEGMENTATION
@@ -443,12 +459,12 @@ st.header("🧠 Student Segmentation")
 conditions = [
     (
         (filtered_df["Engagement_Score"] > 120) &
-        (quiz_filtered > 75)
+        (quiz_f > 75)
     ),
 
     (
         (filtered_df["Engagement_Score"] > 80) &
-        (quiz_filtered < 50)
+        (quiz_f < 50)
     ),
 
     (
@@ -459,7 +475,7 @@ conditions = [
 choices = [
     "High Performers",
     "Active But Confused",
-    "Disengaged Students"
+    "Disengaged"
 ]
 
 filtered_df["Student_Type"] = np.select(
@@ -468,48 +484,50 @@ filtered_df["Student_Type"] = np.select(
     default="Passive Learners"
 )
 
-segment_count = filtered_df["Student_Type"].value_counts()
+segment = filtered_df["Student_Type"].value_counts()
 
-fig7, ax7 = plt.subplots(figsize=(8, 5))
+fig5, ax5 = plt.subplots(figsize=(8, 5))
 
-segment_count.plot(
-    kind="bar",
-    color=["green", "orange", "red", "blue"],
-    ax=ax7
+wedges, texts, autotexts = ax5.pie(
+    segment.values,
+    labels=segment.index,
+    autopct="%1.1f%%",
+    startangle=90
 )
 
-ax7.set_title("Student Segmentation")
-ax7.set_ylabel("Students")
+ax5.set_title("Student Segmentation")
 
-st.pyplot(fig7)
+st.pyplot(fig5)
 
 # =========================================================
-# RISK DETECTION
+# HIGH RISK STUDENTS
 # =========================================================
-st.header("⚠️ High Risk Students")
+st.header("⚠️ High Risk Detection")
 
 risk_students = filtered_df[
-    (attendance_filtered < 60) &
-    (quiz_filtered < 50)
+    (attendance_f < 60) &
+    (quiz_f < 50)
 ]
+
+st.metric(
+    "High Risk Students",
+    len(risk_students)
+)
 
 if len(risk_students) > 0:
 
-    show_cols = []
+    cols = []
 
     if "Student_ID" in filtered_df.columns:
-        show_cols.append("Student_ID")
+        cols.append("Student_ID")
 
     if "Department" in filtered_df.columns:
-        show_cols.append("Department")
+        cols.append("Department")
 
-    st.dataframe(risk_students[show_cols])
-
-else:
-    st.success("✅ No High Risk Students Found")
+    st.dataframe(risk_students[cols])
 
 # =========================================================
-# LEADERBOARD
+# TOP STUDENTS
 # =========================================================
 st.header("🏅 Top Engaged Students")
 
@@ -518,37 +536,37 @@ top_students = filtered_df.sort_values(
     ascending=False
 ).head(10)
 
-display_cols = []
+cols = []
 
 if "Student_ID" in filtered_df.columns:
-    display_cols.append("Student_ID")
+    cols.append("Student_ID")
 
 if "Department" in filtered_df.columns:
-    display_cols.append("Department")
+    cols.append("Department")
 
-display_cols.extend([
+cols.extend([
     "Engagement_Score",
     "Placement_Readiness"
 ])
 
-st.dataframe(top_students[display_cols])
+st.dataframe(top_students[cols])
 
 # =========================================================
 # FINAL INSIGHT
 # =========================================================
-st.header("🚀 Final Insight")
+st.header("🚀 Final Master Insight")
 
 st.success("""
 ✅ Real Learning =
 Watching + Practicing + Asking + Participating
 
 Students with:
-- Higher Attendance
-- Better Quiz Scores
+- High Attendance
 - Active LMS Usage
+- Better Quiz Scores
 - Active Doubt Solving
 
-show stronger placement readiness.
+show better placement readiness.
 """)
 
 # =========================================================
