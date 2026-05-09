@@ -1,12 +1,11 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-# -----------------------------
+# ---------------------------------------------------
 # PAGE CONFIG
-# -----------------------------
+# ---------------------------------------------------
 st.set_page_config(
     page_title="Student Engagement Intelligence System",
     layout="wide"
@@ -15,58 +14,166 @@ st.set_page_config(
 st.title("🎓 Student Engagement Intelligence System")
 st.markdown("### LMS + Behavior → Learning → Placement")
 
-# -----------------------------
+# ---------------------------------------------------
 # LOAD DATA
-# -----------------------------
+# ---------------------------------------------------
 DATA_URL = "https://raw.githubusercontent.com/pragyanaischool/VTU_Internship_DataSets/refs/heads/main/student_data_engament_Project_8.csv"
 
 @st.cache_data
 def load_data():
     df = pd.read_csv(DATA_URL)
+
+    # Clean column names
+    df.columns = (
+        df.columns
+        .str.strip()
+        .str.replace(" ", "_")
+        .str.replace("%", "Percent")
+        .str.replace("-", "_")
+    )
+
     return df
 
 df = load_data()
 
-st.success("Dataset Loaded Successfully ✅")
+# ---------------------------------------------------
+# SHOW DATASET COLUMNS
+# ---------------------------------------------------
+with st.expander("📌 Dataset Columns"):
+    st.write(df.columns.tolist())
 
-# -----------------------------
-# DATA PREVIEW
-# -----------------------------
-with st.expander("📂 View Dataset"):
-    st.dataframe(df)
+# ---------------------------------------------------
+# REQUIRED COLUMN MAPPING
+# ---------------------------------------------------
+# Safe handling if columns differ
 
-# -----------------------------
-# CLEAN COLUMN NAMES
-# -----------------------------
-df.columns = df.columns.str.strip()
+column_map = {}
 
-# -----------------------------
+for col in df.columns:
+
+    lower = col.lower()
+
+    if "attendance" in lower:
+        column_map["attendance"] = col
+
+    elif "quiz" in lower and "score" in lower:
+        column_map["quiz_score"] = col
+
+    elif "video" in lower and "completion" in lower:
+        column_map["video_completion"] = col
+
+    elif "login" in lower:
+        column_map["login_frequency"] = col
+
+    elif "time" in lower and "spent" in lower:
+        column_map["time_spent"] = col
+
+    elif "videos" in lower and "watched" in lower:
+        column_map["videos_watched"] = col
+
+    elif "quizzes" in lower and "attempted" in lower:
+        column_map["quizzes_attempted"] = col
+
+    elif "doubts" in lower and "raised" in lower:
+        column_map["doubts_raised"] = col
+
+    elif "peer" in lower:
+        column_map["peer_discussion"] = col
+
+    elif "hackathons" in lower:
+        column_map["hackathons"] = col
+
+    elif "workshops" in lower:
+        column_map["workshops"] = col
+
+    elif "placement" in lower and "status" in lower:
+        column_map["placement_status"] = col
+
+# ---------------------------------------------------
+# CHECK IMPORTANT COLUMNS
+# ---------------------------------------------------
+required = [
+    "attendance",
+    "quiz_score",
+    "video_completion",
+    "login_frequency",
+    "time_spent",
+]
+
+missing = [c for c in required if c not in column_map]
+
+if missing:
+    st.error(f"Missing columns: {missing}")
+    st.stop()
+
+# ---------------------------------------------------
 # CREATE ADVANCED METRICS
-# -----------------------------
+# ---------------------------------------------------
+
+attendance_col = column_map["attendance"]
+quiz_col = column_map["quiz_score"]
+video_col = column_map["video_completion"]
+login_col = column_map["login_frequency"]
+time_col = column_map["time_spent"]
+
+videos_col = column_map.get("videos_watched")
+quiz_attempt_col = column_map.get("quizzes_attempted")
+doubts_col = column_map.get("doubts_raised")
+peer_col = column_map.get("peer_discussion")
+hackathon_col = column_map.get("hackathons")
+workshop_col = column_map.get("workshops")
+placement_col = column_map.get("placement_status")
+
+# Fill missing optional columns
+optional_cols = [
+    videos_col,
+    quiz_attempt_col,
+    doubts_col,
+    peer_col,
+    hackathon_col,
+    workshop_col
+]
+
+for col in optional_cols:
+    if col and df[col].isnull().sum() > 0:
+        df[col] = df[col].fillna(0)
 
 # Engagement Score
 df["Engagement_Score"] = (
-    df["Attendance_%"] * 0.2 +
-    df["Login_Frequency"] * 5 +
-    df["Time_Spent_Hours"] * 2 +
-    df["Videos_Watched"] * 0.3 +
-    df["Quizzes_Attempted"] * 1.5 +
-    df["Doubts_Raised"] * 2
+    df[attendance_col] * 0.2 +
+    df[login_col] * 5 +
+    df[time_col] * 2
 )
+
+if videos_col:
+    df["Engagement_Score"] += df[videos_col] * 0.3
+
+if quiz_attempt_col:
+    df["Engagement_Score"] += df[quiz_attempt_col] * 1.5
+
+if doubts_col:
+    df["Engagement_Score"] += df[doubts_col] * 2
 
 # Learning Effectiveness
 df["Learning_Effectiveness"] = (
-    df["Avg_Quiz_Score"] *
-    df["Video_Completion_%"] / 100
+    df[quiz_col] *
+    df[video_col] / 100
 )
 
 # Interaction Score
-df["Interaction_Score"] = (
-    df["Doubts_Raised"] +
-    df["Peer_Discussion_Count"] +
-    df["Hackathons_Attended"] +
-    df["Workshops_Attended"]
-)
+df["Interaction_Score"] = 0
+
+if doubts_col:
+    df["Interaction_Score"] += df[doubts_col]
+
+if peer_col:
+    df["Interaction_Score"] += df[peer_col]
+
+if hackathon_col:
+    df["Interaction_Score"] += df[hackathon_col]
+
+if workshop_col:
+    df["Interaction_Score"] += df[workshop_col]
 
 # Placement Readiness
 df["Placement_Readiness"] = (
@@ -75,253 +182,241 @@ df["Placement_Readiness"] = (
     df["Interaction_Score"] * 0.2
 )
 
-# -----------------------------
+# ---------------------------------------------------
 # SIDEBAR FILTERS
-# -----------------------------
+# ---------------------------------------------------
 st.sidebar.header("🔍 Filters")
 
-department = st.sidebar.multiselect(
-    "Select Department",
-    options=df["Department"].unique(),
-    default=df["Department"].unique()
-)
+if "Department" in df.columns:
+    departments = st.sidebar.multiselect(
+        "Select Department",
+        df["Department"].unique(),
+        default=df["Department"].unique()
+    )
 
-college = st.sidebar.multiselect(
-    "Select College",
-    options=df["College"].unique(),
-    default=df["College"].unique()
-)
+    df = df[df["Department"].isin(departments)]
 
-filtered_df = df[
-    (df["Department"].isin(department)) &
-    (df["College"].isin(college))
-]
+if "College" in df.columns:
+    colleges = st.sidebar.multiselect(
+        "Select College",
+        df["College"].unique(),
+        default=df["College"].unique()
+    )
 
-# -----------------------------
-# KPIs
-# -----------------------------
-st.subheader("📊 Overall Analytics")
+    df = df[df["College"].isin(colleges)]
+
+# ---------------------------------------------------
+# KPI SECTION
+# ---------------------------------------------------
+st.subheader("📊 Overall KPIs")
 
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.metric(
         "Average Attendance",
-        f"{filtered_df['Attendance_%'].mean():.2f}%"
+        f"{df[attendance_col].mean():.2f}"
     )
 
 with col2:
     st.metric(
         "Average Quiz Score",
-        f"{filtered_df['Avg_Quiz_Score'].mean():.2f}"
+        f"{df[quiz_col].mean():.2f}"
     )
 
 with col3:
-    placement_rate = (
-        filtered_df["Placement_Status"]
-        .value_counts(normalize=True)
-        .get("Placed", 0) * 100
-    )
-
     st.metric(
-        "Placement Rate",
-        f"{placement_rate:.2f}%"
+        "Avg Engagement",
+        f"{df['Engagement_Score'].mean():.2f}"
     )
 
 with col4:
     st.metric(
-        "Avg Engagement Score",
-        f"{filtered_df['Engagement_Score'].mean():.2f}"
+        "Placement Readiness",
+        f"{df['Placement_Readiness'].mean():.2f}"
     )
 
-# -----------------------------
-# ENGAGEMENT OVERVIEW
-# -----------------------------
-st.subheader("🔥 Engagement Overview")
+# ---------------------------------------------------
+# ATTENDANCE VS QUIZ
+# ---------------------------------------------------
+st.subheader("📈 Attendance vs Quiz Performance")
 
 fig1, ax1 = plt.subplots(figsize=(8, 4))
 
 ax1.scatter(
-    filtered_df["Attendance_%"],
-    filtered_df["Avg_Quiz_Score"]
+    df[attendance_col],
+    df[quiz_col]
 )
 
-ax1.set_xlabel("Attendance %")
+ax1.set_xlabel("Attendance")
 ax1.set_ylabel("Quiz Score")
 ax1.set_title("Attendance vs Quiz Score")
 
 st.pyplot(fig1)
 
-# -----------------------------
-# LOGIN FREQUENCY
-# -----------------------------
-st.subheader("💻 Login Frequency vs Placement")
-
-login_bins = pd.cut(
-    filtered_df["Login_Frequency"],
-    bins=[0, 2, 4, 7],
-    labels=["Low", "Medium", "High"]
-)
-
-login_analysis = pd.crosstab(
-    login_bins,
-    filtered_df["Placement_Status"]
-)
-
-st.dataframe(login_analysis)
+# ---------------------------------------------------
+# LOGIN VS ENGAGEMENT
+# ---------------------------------------------------
+st.subheader("💻 Login Frequency vs Engagement")
 
 fig2, ax2 = plt.subplots(figsize=(8, 4))
 
-login_analysis.plot(
-    kind="bar",
-    ax=ax2
+ax2.scatter(
+    df[login_col],
+    df["Engagement_Score"]
 )
 
-ax2.set_title("Login Frequency vs Placement")
-ax2.set_ylabel("Count")
+ax2.set_xlabel("Login Frequency")
+ax2.set_ylabel("Engagement Score")
+ax2.set_title("Login Frequency vs Engagement")
 
 st.pyplot(fig2)
 
-# -----------------------------
+# ---------------------------------------------------
 # TIME SPENT ANALYSIS
-# -----------------------------
-st.subheader("⏰ Time Spent vs Placement")
+# ---------------------------------------------------
+st.subheader("⏰ Time Spent vs Placement Readiness")
 
 fig3, ax3 = plt.subplots(figsize=(8, 4))
 
 ax3.scatter(
-    filtered_df["Time_Spent_Hours"],
-    filtered_df["Placement_Readiness"]
+    df[time_col],
+    df["Placement_Readiness"]
 )
 
-ax3.set_xlabel("Time Spent Hours")
+ax3.set_xlabel("Time Spent")
 ax3.set_ylabel("Placement Readiness")
 ax3.set_title("Time Spent vs Placement Readiness")
 
 st.pyplot(fig3)
 
-# -----------------------------
+# ---------------------------------------------------
 # VIDEO COMPLETION
-# -----------------------------
-st.subheader("🎥 Video Completion Analysis")
+# ---------------------------------------------------
+st.subheader("🎥 Video Completion Distribution")
 
 fig4, ax4 = plt.subplots(figsize=(8, 4))
 
 ax4.hist(
-    filtered_df["Video_Completion_%"],
+    df[video_col],
     bins=10
 )
 
-ax4.set_title("Video Completion Distribution")
-ax4.set_xlabel("Completion %")
+ax4.set_xlabel("Video Completion %")
+ax4.set_ylabel("Students")
 
 st.pyplot(fig4)
 
-# -----------------------------
+# ---------------------------------------------------
 # DOUBT ANALYSIS
-# -----------------------------
-st.subheader("❓ Doubt Behavior Impact")
+# ---------------------------------------------------
+if doubts_col:
 
-fig5, ax5 = plt.subplots(figsize=(8, 4))
+    st.subheader("❓ Doubt Analysis")
 
-ax5.scatter(
-    filtered_df["Doubts_Raised"],
-    filtered_df["Avg_Quiz_Score"]
-)
+    fig5, ax5 = plt.subplots(figsize=(8, 4))
 
-ax5.set_xlabel("Doubts Raised")
-ax5.set_ylabel("Quiz Score")
-ax5.set_title("Doubts Raised vs Quiz Score")
+    ax5.scatter(
+        df[doubts_col],
+        df[quiz_col]
+    )
 
-st.pyplot(fig5)
+    ax5.set_xlabel("Doubts Raised")
+    ax5.set_ylabel("Quiz Score")
 
-# -----------------------------
-# EVENT PARTICIPATION
-# -----------------------------
-st.subheader("🏆 Event Participation")
+    st.pyplot(fig5)
 
-event_data = filtered_df[
-    [
-        "Hackathons_Attended",
-        "Workshops_Attended",
-        "Live_Sessions_Joined"
-    ]
-].sum()
+# ---------------------------------------------------
+# EVENT ANALYSIS
+# ---------------------------------------------------
+if hackathon_col and workshop_col:
 
-fig6, ax6 = plt.subplots(figsize=(8, 4))
+    st.subheader("🏆 Event Participation")
 
-event_data.plot(
-    kind="bar",
-    ax=ax6
-)
+    event_data = pd.Series({
+        "Hackathons": df[hackathon_col].sum(),
+        "Workshops": df[workshop_col].sum()
+    })
 
-ax6.set_title("Events Participation")
+    fig6, ax6 = plt.subplots(figsize=(8, 4))
 
-st.pyplot(fig6)
+    event_data.plot(
+        kind="bar",
+        ax=ax6
+    )
 
-# -----------------------------
+    ax6.set_title("Events Participation")
+
+    st.pyplot(fig6)
+
+# ---------------------------------------------------
 # RISK DETECTION
-# -----------------------------
-st.subheader("⚠️ Risk Detection")
+# ---------------------------------------------------
+st.subheader("⚠️ High Risk Students")
 
-risk_students = filtered_df[
-    (filtered_df["Attendance_%"] < 60) &
-    (filtered_df["Avg_Quiz_Score"] < 50)
+risk_students = df[
+    (df[attendance_col] < 60) &
+    (df[quiz_col] < 50)
 ]
 
-st.write("### High Risk Students")
+if len(risk_students) > 0:
 
-st.dataframe(
-    risk_students[
-        [
-            "Student_ID",
-            "Department",
-            "Attendance_%",
-            "Avg_Quiz_Score",
-            "Placement_Status"
-        ]
-    ]
-)
+    show_cols = []
 
-# -----------------------------
-# SEGMENTATION
-# -----------------------------
+    if "Student_ID" in df.columns:
+        show_cols.append("Student_ID")
+
+    if "Department" in df.columns:
+        show_cols.append("Department")
+
+    show_cols.extend([
+        attendance_col,
+        quiz_col
+    ])
+
+    st.dataframe(risk_students[show_cols])
+
+else:
+    st.success("No High Risk Students Found")
+
+# ---------------------------------------------------
+# STUDENT SEGMENTATION
+# ---------------------------------------------------
 st.subheader("🧠 Student Segmentation")
 
 conditions = [
     (
-        (filtered_df["Engagement_Score"] > 120) &
-        (filtered_df["Avg_Quiz_Score"] > 75)
+        (df["Engagement_Score"] > 120) &
+        (df[quiz_col] > 75)
     ),
 
     (
-        (filtered_df["Videos_Watched"] > 20) &
-        (filtered_df["Doubts_Raised"] < 2)
+        (df["Engagement_Score"] > 80) &
+        (df[quiz_col] < 50)
     ),
 
     (
-        (filtered_df["Login_Frequency"] > 5) &
-        (filtered_df["Avg_Quiz_Score"] < 50)
+        (df["Engagement_Score"] < 60)
     )
 ]
 
 choices = [
     "High Performers",
-    "Passive Learners",
-    "Active But Confused"
+    "Active But Confused",
+    "Disengaged Students"
 ]
 
-filtered_df["Segment"] = np.select(
+df["Segment"] = np.select(
     conditions,
     choices,
-    default="Disengaged Students"
+    default="Passive Learners"
 )
 
-segment_count = filtered_df["Segment"].value_counts()
+segment_counts = df["Segment"].value_counts()
 
 fig7, ax7 = plt.subplots(figsize=(8, 4))
 
-segment_count.plot(
+segment_counts.plot(
     kind="bar",
     ax=ax7
 )
@@ -330,45 +425,50 @@ ax7.set_title("Student Segmentation")
 
 st.pyplot(fig7)
 
-# -----------------------------
+# ---------------------------------------------------
 # LEADERBOARD
-# -----------------------------
+# ---------------------------------------------------
 st.subheader("🏅 Top Engaged Students")
 
-top_students = filtered_df.sort_values(
+top_students = df.sort_values(
     by="Engagement_Score",
     ascending=False
 ).head(10)
 
-st.dataframe(
-    top_students[
-        [
-            "Student_ID",
-            "Department",
-            "Engagement_Score",
-            "Placement_Readiness"
-        ]
-    ]
-)
+display_cols = []
 
-# -----------------------------
+if "Student_ID" in df.columns:
+    display_cols.append("Student_ID")
+
+if "Department" in df.columns:
+    display_cols.append("Department")
+
+display_cols.extend([
+    "Engagement_Score",
+    "Placement_Readiness"
+])
+
+st.dataframe(top_students[display_cols])
+
+# ---------------------------------------------------
 # FINAL INSIGHT
-# -----------------------------
+# ---------------------------------------------------
 st.subheader("🚀 Final Master Insight")
 
 st.info(
     """
     ❌ Watching videos alone is NOT learning.
 
-    ✅ Real learning =
+    ✅ Real Learning =
     Watching + Practicing + Asking Doubts + Applying Skills
 
-    Engagement is one of the strongest predictors of placement success.
+    Engagement is one of the strongest predictors
+    of placement success.
     """
 )
 
-# -----------------------------
+# ---------------------------------------------------
 # FOOTER
-# -----------------------------
+# ---------------------------------------------------
 st.markdown("---")
 st.markdown("Developed for PragyanAI Engagement Intelligence Engine")
