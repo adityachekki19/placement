@@ -471,4 +471,4 @@ st.info(
 # FOOTER
 # ---------------------------------------------------
 st.markdown("---")
-st.markdown("Developed for PragyanAI Engagement Intelligence Engine")
+st.markdown("Developed for  APN Engagement Intelligence Engine")
