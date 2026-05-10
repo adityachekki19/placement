@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore")
 # PAGE CONFIG
 # =========================================================
 st.set_page_config(
-    page_title="APN Student Intelligence Engine",
+    page_title="PragyanAI · Student Intelligence Engine",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -173,18 +173,18 @@ def apply_template(fig):
     return fig
 
 # =========================================================
-# DATA LOAD  (reads data.txt from the same repo folder)
+# DATA LOAD  (reads data.csv from the same repo folder)
 # =========================================================
 
 @st.cache_data(show_spinner=False)
 def load_data():
     # Try comma-separated first, then tab-separated
     try:
-        df = pd.read_csv("data.txt", sep=",")
+        df = pd.read_csv("data.csv", sep=",")
         if df.shape[1] < 2:
             raise ValueError("too few columns, retrying with tab separator")
     except Exception:
-        df = pd.read_csv("data.txt", sep="\t")
+        df = pd.read_csv("data.csv", sep="\t")
 
     df.columns = (df.columns.str.strip()
                   .str.replace(" ", "_")
@@ -210,14 +210,14 @@ def safe(df, col):
 # =========================================================
 # LOAD
 # =========================================================
-with st.spinner("Loading data.txt …"):
+with st.spinner("Loading data.csv …"):
     try:
         df_raw = load_data()
     except FileNotFoundError:
-        st.error("\u274c `data.txt` not found. Make sure it sits in the same folder as `app.py` in your GitHub repo.")
+        st.error("\u274c `data.csv` not found. Make sure it sits in the same folder as `app.py` in your GitHub repo.")
         st.stop()
     except Exception as e:
-        st.error(f"\u274c Failed to read data.txt: {e}")
+        st.error(f"\u274c Failed to read data.csv: {e}")
         st.stop()
 
 # =========================================================
