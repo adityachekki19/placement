@@ -49,7 +49,9 @@ def load_data(file):
         .str.replace("-", "_")
     )
     for col in df.columns:
-        df[col] = pd.to_numeric(df[col], errors="ignore")
+        converted = pd.to_numeric(df[col], errors="coerce")
+        if converted.notna().sum() >= len(df) * 0.5:
+            df[col] = converted
     return df
 
 df = load_data(uploaded_file)
