@@ -631,32 +631,38 @@ top10 = (filt_df.sort_values("Engagement_Score", ascending=False)
          .head(10).reset_index(drop=True))
 top10.index += 1
 
-# horizontal bar chart
-y_labels = []
-for i, row in top10.iterrows():
-    sid_v  = str(row.get(c_sid,  f"Student {i}"))
-    dept_v = str(row.get(c_dept, ""))
-    y_labels.append(f"#{i} {sid_v}" + (f" · {dept_v}" if dept_v else ""))
+if len(top10) == 0:
+    st.warning("No students match the current filter. Adjust sidebar filters.")
+else:
+    # horizontal bar chart
+    y_labels = []
+    for i, row in top10.iterrows():
+        sid_v  = str(row.get(c_sid,  f"Student {i}"))
+        dept_v = str(row.get(c_dept, ""))
+        y_labels.append(f"#{i} {sid_v}" + (f" · {dept_v}" if dept_v else ""))
 
-fig, ax = plt.subplots(figsize=(9, 5))
-eng_vals = top10["Engagement_Score"].values
-norm_vals = (eng_vals - eng_vals.min()) / (eng_vals.max() - eng_vals.min() + 1e-9)
-bar_clrs  = plt.cm.Blues(0.4 + norm_vals * 0.6)   # type: ignore[attr-defined]
-bars = ax.barh(y_labels, eng_vals, color=bar_clrs, edgecolor="none", height=0.6)
-ax.set_title("Top 10 Students by Engagement Score")
-ax.set_xlabel("Engagement Score")
-ax.invert_yaxis()
-ax.xaxis.grid(True); ax.set_axisbelow(True)
-for bar, val in zip(bars, eng_vals):
-    ax.text(bar.get_width() + eng_vals.max() * 0.01, bar.get_y() + bar.get_height()/2,
-            f"{val:.1f}", va="center", fontsize=10, color="#e0eaff", fontweight="bold")
-show(fig)
+    eng_vals  = top10["Engagement_Score"].values.astype(float)
+    rng       = eng_vals.max() - eng_vals.min()
+    norm_vals = (eng_vals - eng_vals.min()) / (rng + 1e-9)
+    bar_clrs  = plt.cm.Blues(0.4 + norm_vals * 0.6)
 
-lb_cols = [c for c in [c_sid, c_dept, c_cgpa,
-                        "Engagement_Score", "Learning_Score",
-                        "Interaction_Score", "Placement_Readiness", "Segment"]
-           if c and c in top10.columns]
-st.dataframe(top10[lb_cols], use_container_width=True)
+    fig, ax = plt.subplots(figsize=(9, 5))
+    bars = ax.barh(y_labels, eng_vals, color=bar_clrs, edgecolor="none", height=0.6)
+    ax.set_title("Top 10 Students by Engagement Score")
+    ax.set_xlabel("Engagement Score")
+    ax.invert_yaxis()
+    ax.xaxis.grid(True); ax.set_axisbelow(True)
+    x_max = float(eng_vals.max()) or 1
+    for bar, val in zip(bars, eng_vals):
+        ax.text(bar.get_width() + x_max * 0.01, bar.get_y() + bar.get_height()/2,
+                f"{val:.1f}", va="center", fontsize=10, color="#e0eaff", fontweight="bold")
+    show(fig)
+
+    lb_cols = [c for c in [c_sid, c_dept, c_cgpa,
+                            "Engagement_Score", "Learning_Score",
+                            "Interaction_Score", "Placement_Readiness", "Segment"]
+               if c and c in top10.columns]
+    st.dataframe(top10[lb_cols], use_container_width=True)
 
 st.markdown("---")
 
@@ -665,38 +671,42 @@ st.markdown("---")
 # ─────────────────────────────────────────
 st.header("🚀 9. Placement Readiness Distribution")
 
-fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-
-# histogram
-axes[0].hist(filt_df["Placement_Readiness"].dropna(), bins=25,
-             color="#38b6ff", edgecolor="#0d1526", alpha=0.85)
-q33 = filt_df["Placement_Readiness"].quantile(0.33)
-q66 = filt_df["Placement_Readiness"].quantile(0.66)
-axes[0].axvline(q33, color="#ef4444", linestyle="--", linewidth=1.5, label="Bottom 33%")
-axes[0].axvline(q66, color="#10b981", linestyle="--", linewidth=1.5, label="Top 33%")
-axes[0].set_title("Placement Readiness Score Distribution")
-axes[0].set_xlabel("Readiness Score"); axes[0].set_ylabel("Students")
-axes[0].legend(fontsize=9); axes[0].yaxis.grid(True); axes[0].set_axisbelow(True)
-
-# placement status if available
-if c_place and c_place in filt_df.columns:
-    place_counts = filt_df[c_place].value_counts()
-    p_colors = ["#10b981","#ef4444","#f59e0b","#38b6ff","#a78bfa"]
-    axes[1].pie(
-        place_counts.values,
-        labels=place_counts.index.tolist(),
-        autopct="%1.1f%%",
-        colors=p_colors[:len(place_counts)],
-        startangle=140,
-        wedgeprops=dict(edgecolor="#0d1526", linewidth=2)
-    )
-    axes[1].set_title("Placement Status Breakdown")
+pr_data = filt_df["Placement_Readiness"].dropna()
+if len(pr_data) == 0:
+    st.warning("No placement readiness data in current filter range.")
 else:
-    # CGPA vs Readiness scatter
-    cgpa_s = safe(filt_df, c_cgpa)
-    axes[1].scatter(cgpa_s, filt_df["Placement_Readiness"],
-                    color="#a78bfa", alpha=0.5, s=18)
-    axes[1].set_title("CGPA vs Placement Readiness")
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+    # histogram
+    axes[0].hist(pr_data, bins=min(25, len(pr_data)),
+                 color="#38b6ff", edgecolor="#0d1526", alpha=0.85)
+    q33 = pr_data.quantile(0.33)
+    q66 = pr_data.quantile(0.66)
+    axes[0].axvline(q33, color="#ef4444", linestyle="--", linewidth=1.5, label="Bottom 33%")
+    axes[0].axvline(q66, color="#10b981", linestyle="--", linewidth=1.5, label="Top 33%")
+    axes[0].set_title("Placement Readiness Score Distribution")
+    axes[0].set_xlabel("Readiness Score"); axes[0].set_ylabel("Students")
+    axes[0].legend(fontsize=9); axes[0].yaxis.grid(True); axes[0].set_axisbelow(True)
+
+    # placement status if available
+    if c_place and c_place in filt_df.columns:
+        place_counts = filt_df[c_place].value_counts()
+        p_colors = ["#10b981","#ef4444","#f59e0b","#38b6ff","#a78bfa"]
+        axes[1].pie(
+            place_counts.values,
+            labels=place_counts.index.tolist(),
+            autopct="%1.1f%%",
+            colors=p_colors[:len(place_counts)],
+            startangle=140,
+            wedgeprops=dict(edgecolor="#0d1526", linewidth=2)
+        )
+        axes[1].set_title("Placement Status Breakdown")
+    else:
+        # CGPA vs Readiness scatter
+        cgpa_s = safe(filt_df, c_cgpa)
+        axes[1].scatter(cgpa_s, filt_df["Placement_Readiness"],
+                        color="#a78bfa", alpha=0.5, s=18)
+        axes[1].set_title("CGPA vs Placement Readiness")
     axes[1].set_xlabel("CGPA"); axes[1].set_ylabel("Placement Readiness")
     axes[1].grid(True)
 
