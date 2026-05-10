@@ -328,22 +328,31 @@ with col3:
         show(fig)
 
 with col4:
-    tcut  = pd.cut(time_f, bins=[0, 5, 15, 30, 100], labels=["<5h", "5–15h", "15–30h", ">30h"])
-    avg_p = pd.DataFrame({"c": tcut, "p": filt_df["Placement_Readiness"]}).groupby("c", observed=True)["p"].mean().round(1)
+    t_lbls   = ["<5h", "5-15h", "15-30h", ">30h"]
     t_colors = [BAR_COLORS[0], BAR_COLORS[1], BAR_COLORS[2], "#6b8cba"]
-
-    fig, ax = plt.subplots(figsize=(6, 4))
-    ax.plot(avg_p.index.tolist(), avg_p.values,
-            color="#a78bfa", linewidth=2.5, marker="o", markersize=9)
-    for i, (x, y) in enumerate(zip(avg_p.index.tolist(), avg_p.values)):
-        ax.plot(x, y, "o", color=t_colors[i], markersize=11)
-        ax.text(i, y + avg_p.max() * 0.04, f"{y:.1f}",
-                ha="center", va="bottom", fontsize=10, color="#e0eaff", fontweight="bold")
-    ax.set_title("Time Spent/Week → Placement Readiness")
-    ax.set_xlabel("Weekly Study Hours"); ax.set_ylabel("Placement Readiness")
-    ax.set_ylim(0, avg_p.max() * 1.3)
-    ax.yaxis.grid(True); ax.set_axisbelow(True)
-    show(fig)
+    tcut     = pd.cut(time_f, bins=[0, 5, 15, 30, 100], labels=t_lbls)
+    tmp_t    = pd.DataFrame({"c": tcut, "p": filt_df["Placement_Readiness"]})
+    avg_p    = tmp_t.groupby("c", observed=False)["p"].mean().reindex(t_lbls).round(1)
+    # drop NaN bins (no students in that range)
+    avg_p_clean = avg_p.dropna()
+    if len(avg_p_clean) == 0:
+        st.warning("No time spent data in current filter range.")
+    else:
+        x_lbls  = avg_p_clean.index.tolist()
+        y_vals  = avg_p_clean.values.astype(float)
+        y_max   = float(y_vals.max()) or 10
+        clrs    = [t_colors[t_lbls.index(x)] for x in x_lbls]
+        fig, ax = plt.subplots(figsize=(6, 4))
+        ax.plot(x_lbls, y_vals, color="#a78bfa", linewidth=2.5, marker="o", markersize=9)
+        for i, (x, y) in enumerate(zip(x_lbls, y_vals)):
+            ax.plot(x, y, "o", color=clrs[i], markersize=11)
+            ax.text(i, y + y_max * 0.04, f"{y:.1f}",
+                    ha="center", va="bottom", fontsize=10, color="#e0eaff", fontweight="bold")
+        ax.set_title("Time Spent/Week -> Placement Readiness")
+        ax.set_xlabel("Weekly Study Hours"); ax.set_ylabel("Placement Readiness")
+        ax.set_ylim(0, y_max * 1.3)
+        ax.yaxis.grid(True); ax.set_axisbelow(True)
+        show(fig)
 
 st.warning("⏱ Sweet Spot: 15–30 hrs/week = peak readiness. >30h shows burnout plateau.")
 
