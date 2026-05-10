@@ -583,15 +583,22 @@ with col_b:
     # Radar chart per segment
     segs_list = ["🏆 High Performer","🔵 Passive Learner","🔶 Active but Confused","⚠️ Disengaged"]
     seg_colors = ["#10b981","#38b6ff","#f59e0b","#ef4444"]
+    # Pre-built valid rgba fill colours (opacity 0.15)
+    seg_fills  = [
+        "rgba(16,185,129,0.15)",
+        "rgba(56,182,255,0.15)",
+        "rgba(245,158,11,0.15)",
+        "rgba(239,68,68,0.15)",
+    ]
     dims = ["Attendance","Quiz Score","Video Comp.","Logins","Time Spent","Doubts Raised"]
 
     fig6 = go.Figure()
-    for seg, color in zip(segs_list, seg_colors):
+    for seg, color, fill in zip(segs_list, seg_colors, seg_fills):
         sub = filt_df[filt_df["Segment"] == seg]
         if len(sub) == 0:
             continue
-        def nm(col, mx):
-            return safe(sub, col).mean() / mx * 100 if mx > 0 else 0
+        def nm(col, mx, _sub=sub):
+            return safe(_sub, col).mean() / mx * 100 if mx > 0 else 0
         vals = [
             nm(c_att,   100),
             nm(c_quiz,  100),
@@ -605,7 +612,7 @@ with col_b:
             r=vals_closed,
             theta=dims + [dims[0]],
             fill="toself",
-            fillcolor=color.replace("#", "rgba(").replace(")", ", 0.12)") if "#" in color else color,
+            fillcolor=fill,
             line=dict(color=color, width=2),
             name=seg,
             hovertemplate="%{theta}: %{r:.0f}%<extra></extra>"
