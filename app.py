@@ -5,6 +5,9 @@ import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 import warnings
+import os
+from pathlib import Path
+
 warnings.filterwarnings("ignore")
 
 # =========================================================
@@ -26,7 +29,7 @@ html,body,[class*="css"]{font-family:'Outfit',sans-serif!important;background:#0
 .block-container{padding:1.2rem 2rem!important;}
 .hero{background:linear-gradient(135deg,#0f1a35,#0a1020,#10182e);border:1px solid #1e3060;border-radius:16px;padding:28px 36px 24px;margin-bottom:24px;position:relative;overflow:hidden;}
 .hero::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(56,182,255,0.12),transparent 70%);border-radius:50%;}
-.hero-title{font-size:2rem;font-weight:800;background:linear-gradient(90deg,#38b6ff,#a78bfa,#38b6ff);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 3s infinite linear;margin:0 0 6px;}
+.hero-title{font-size:2rem;font-weight:800;background:linear-gradient(90deg,#38b6ff,#a78bfa,#38b6ff);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 3s ease-in-out infinite;}
 @keyframes shimmer{0%{background-position:0%}100%{background-position:200%}}
 .hero-sub{color:#6b8cba;font-size:0.85rem;font-family:'JetBrains Mono',monospace;}
 .sec-head{font-size:1rem;font-weight:700;color:#38b6ff;text-transform:uppercase;letter-spacing:2px;border-left:3px solid #38b6ff;padding-left:12px;margin:24px 0 14px;}
@@ -88,17 +91,65 @@ def safe(df, col):
     return pd.to_numeric(df[col], errors="coerce").fillna(0)
 
 # =========================================================
+# SAMPLE DATA GENERATOR
+# =========================================================
+def generate_sample_data(n_students=150):
+    """Generate realistic sample student data for demonstration"""
+    np.random.seed(42)
+    data = {
+        'Student_ID': [f'STU{1001+i}' for i in range(n_students)],
+        'Department': np.random.choice(['CSE', 'ECE', 'ME', 'CE', 'EE'], n_students),
+        'Attendance': np.random.normal(75, 15, n_students).clip(20, 100).astype(int),
+        'Quiz_Score': np.random.normal(65, 18, n_students).clip(0, 100).astype(int),
+        'Video_Completion_Pct': np.random.normal(70, 20, n_students).clip(0, 100).astype(int),
+        'Login_Frequency': np.random.poisson(4, n_students).astype(int),
+        'Time_Spent_Hours': np.random.gamma(15, 1.5, n_students).astype(int),
+        'Videos_Watched': np.random.poisson(8, n_students).astype(int),
+        'Doubts_Raised': np.random.poisson(3, n_students).astype(int),
+        'Doubt_Resolved': np.random.poisson(2.5, n_students).astype(int),
+        'Peer_Learning': np.random.poisson(2, n_students).astype(int),
+        'Hackathon_Participation': np.random.poisson(0.8, n_students).astype(int),
+        'Workshop_Participation': np.random.poisson(1.2, n_students).astype(int),
+        'Live_Sessions': np.random.poisson(1.5, n_students).astype(int),
+        'CGPA': (np.random.normal(7.5, 0.8, n_students).clip(4, 10) * 10).astype(int) / 10,
+        'Active_Days': np.random.poisson(20, n_students).astype(int),
+    }
+    return pd.DataFrame(data)
+
+# =========================================================
 # CACHED DATA LOAD + COMPUTE
 # =========================================================
 @st.cache_data(show_spinner=False)
 def load_and_compute():
-    # ---- load ----
-    try:
-        df = pd.read_csv("data.csv", sep=",")
-        if df.shape[1] < 2:
-            raise ValueError("too few columns")
-    except Exception:
-        df = pd.read_csv("data.csv", sep="\t")
+    # ---- Attempt to load data.csv from multiple locations ----
+    df = None
+    possible_paths = [
+        "data.csv",
+        "./data.csv",
+        os.path.join(os.getcwd(), "data.csv"),
+        os.path.join(str(Path.home()), "data.csv"),
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            try:
+                df = pd.read_csv(path, sep=",")
+                if df.shape[1] < 2:
+                    raise ValueError("too few columns")
+                break
+            except Exception as e:
+                try:
+                    df = pd.read_csv(path, sep="\t")
+                    if df.shape[1] < 2:
+                        raise ValueError("too few columns")
+                    break
+                except Exception:
+                    continue
+    
+    # ---- If no data.csv found, generate sample data ----
+    if df is None:
+        st.warning("⚠️ data.csv not found. Using generated sample data for demonstration.")
+        df = generate_sample_data(150)
 
     df.columns = (df.columns.str.strip()
                   .str.replace(" ", "_")
@@ -177,11 +228,8 @@ def load_and_compute():
 with st.spinner("⏳ Loading data.csv …"):
     try:
         df_full, COLS = load_and_compute()
-    except FileNotFoundError:
-        st.error("❌ `data.csv` not found. Place it in the same folder as `app.py`.")
-        st.stop()
     except Exception as exc:
-        st.error(f"❌ Failed to read data.csv: {exc}")
+        st.error(f"❌ Failed to process data: {exc}")
         st.stop()
 
 # =========================================================
