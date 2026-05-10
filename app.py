@@ -244,21 +244,26 @@ col1, col2 = st.columns(2)
 
 with col1:
     bins   = [0, 60, 80, 100]
-    labels = ["<60%\nLow", "60–80%\nMedium", ">80%\nHigh"]
+    labels = ["<60%\nLow", "60-80%\nMedium", ">80%\nHigh"]
     cut    = pd.cut(att_f, bins=bins, labels=labels)
-    grp    = pd.DataFrame({"lvl": cut, "quiz": quiz_f}).groupby("lvl", observed=True)["quiz"]
-    avg_q  = grp.mean().round(1).values
-    cnt_q  = grp.count().values
+    tmp    = pd.DataFrame({"lvl": cut, "quiz": quiz_f})
+    avg_q  = tmp.groupby("lvl", observed=False)["quiz"].mean().reindex(labels).fillna(0).round(1)
+    cnt_q  = tmp.groupby("lvl", observed=False)["quiz"].count().reindex(labels).fillna(0)
+    act    = avg_q > 0   # mask out empty bins
+    a_lbl  = avg_q.index[act].tolist()
+    a_vals = avg_q[act].values
+    a_cnts = cnt_q[act].values
+    a_clrs = [BAR_COLORS[i] for i, ok in enumerate(act) if ok]
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    bars = ax.bar(labels, avg_q, color=BAR_COLORS, edgecolor="none", width=0.5)
+    bars = ax.bar(a_lbl, a_vals, color=a_clrs, edgecolor="none", width=0.5)
     ax.set_title("Avg Quiz Score by Attendance Band")
     ax.set_ylabel("Avg Quiz Score")
-    ax.set_ylim(0, max(avg_q) * 1.35)
+    ax.set_ylim(0, max(a_vals.max(), 1) * 1.35)
     ax.yaxis.grid(True); ax.set_axisbelow(True)
-    for bar, val, cnt in zip(bars, avg_q, cnt_q):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
-                f"{val:.1f}\n({cnt} students)", ha="center", va="bottom",
+    for bar, val, cnt in zip(bars, a_vals, a_cnts):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
+                f"{val:.1f}\n({int(cnt)})", ha="center", va="bottom",
                 fontsize=9, color="#e0eaff", fontweight="bold")
     show(fig)
 
@@ -293,19 +298,26 @@ st.header("💻 2. LMS Usage — Login Frequency & Time Spent")
 col3, col4 = st.columns(2)
 
 with col3:
-    lcut  = pd.cut(login_f, bins=[0, 2, 5, 7], labels=["1–2/wk\nLow", "3–5/wk\nMed", "6–7/wk\nHigh"])
-    avg_e = pd.DataFrame({"c": lcut, "e": filt_df["Engagement_Score"]}).groupby("c", observed=True)["e"].mean().round(1)
-    cnt_e = pd.DataFrame({"c": lcut, "e": filt_df["Engagement_Score"]}).groupby("c", observed=True)["e"].count()
+    l_lbls = ["1-2/wk\nLow", "3-5/wk\nMed", "6-7/wk\nHigh"]
+    lcut   = pd.cut(login_f, bins=[0, 2, 5, 7], labels=l_lbls)
+    tmp_l  = pd.DataFrame({"c": lcut, "e": filt_df["Engagement_Score"]})
+    avg_e  = tmp_l.groupby("c", observed=False)["e"].mean().reindex(l_lbls).fillna(0).round(1)
+    cnt_e  = tmp_l.groupby("c", observed=False)["e"].count().reindex(l_lbls).fillna(0)
+    act_l  = avg_e > 0
+    e_lbl  = avg_e.index[act_l].tolist()
+    e_vals = avg_e[act_l].values
+    e_cnts = cnt_e[act_l].values
+    e_clrs = [BAR_COLORS[i] for i, ok in enumerate(act_l) if ok]
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    bars = ax.bar(avg_e.index.tolist(), avg_e.values, color=BAR_COLORS, edgecolor="none", width=0.5)
-    ax.set_title("Login Frequency → Engagement Score")
+    bars = ax.bar(e_lbl, e_vals, color=e_clrs, edgecolor="none", width=0.5)
+    ax.set_title("Login Frequency -> Engagement Score")
     ax.set_ylabel("Avg Engagement Score")
-    ax.set_ylim(0, avg_e.max() * 1.35)
+    ax.set_ylim(0, max(e_vals.max(), 1) * 1.35)
     ax.yaxis.grid(True); ax.set_axisbelow(True)
-    for bar, val, cnt in zip(bars, avg_e.values, cnt_e.values):
+    for bar, val, cnt in zip(bars, e_vals, e_cnts):
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
-                f"{val:.1f}\n({cnt})", ha="center", va="bottom",
+                f"{val:.1f}\n({int(cnt)})", ha="center", va="bottom",
                 fontsize=9, color="#e0eaff", fontweight="bold")
     show(fig)
 
@@ -358,20 +370,27 @@ with col5:
     show(fig)
 
 with col6:
-    vbins = [0, 50, 80, 100]; vlabels = ["<50%\nLow", "50–80%\nMed", ">80%\nHigh"]
-    vcut2 = pd.cut(vid_f, bins=vbins, labels=vlabels)
-    avg_vq= pd.DataFrame({"c": vcut2, "q": quiz_f}).groupby("c", observed=True)["q"].mean().round(1)
-    cnt_vq= pd.DataFrame({"c": vcut2, "q": quiz_f}).groupby("c", observed=True)["q"].count()
+    vbins  = [0, 50, 80, 100]
+    vlbls  = ["<50%\nLow", "50-80%\nMed", ">80%\nHigh"]
+    vcut2  = pd.cut(vid_f, bins=vbins, labels=vlbls)
+    tmp_v  = pd.DataFrame({"c": vcut2, "q": quiz_f})
+    avg_vq = tmp_v.groupby("c", observed=False)["q"].mean().reindex(vlbls).fillna(0).round(1)
+    cnt_vq = tmp_v.groupby("c", observed=False)["q"].count().reindex(vlbls).fillna(0)
+    act_v  = avg_vq > 0
+    v_lbl  = avg_vq.index[act_v].tolist()
+    v_vals = avg_vq[act_v].values
+    v_cnts = cnt_vq[act_v].values
+    v_clrs = [BAR_COLORS[i] for i, ok in enumerate(act_v) if ok]
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    bars = ax.bar(avg_vq.index.tolist(), avg_vq.values, color=BAR_COLORS, edgecolor="none", width=0.5)
-    ax.set_title("Video Completion → Quiz Score")
+    bars = ax.bar(v_lbl, v_vals, color=v_clrs, edgecolor="none", width=0.5)
+    ax.set_title("Video Completion -> Quiz Score")
     ax.set_ylabel("Avg Quiz Score")
-    ax.set_ylim(0, avg_vq.max() * 1.35)
+    ax.set_ylim(0, max(v_vals.max(), 1) * 1.35)
     ax.yaxis.grid(True); ax.set_axisbelow(True)
-    for bar, val, cnt in zip(bars, avg_vq.values, cnt_vq.values):
+    for bar, val, cnt in zip(bars, v_vals, v_cnts):
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
-                f"{val:.1f}\n({cnt})", ha="center", va="bottom",
+                f"{val:.1f}\n({int(cnt)})", ha="center", va="bottom",
                 fontsize=9, color="#e0eaff", fontweight="bold")
     show(fig)
 
@@ -387,19 +406,26 @@ st.header("❓ 4. Doubt Behaviour — Growth Mindset Indicator")
 col7, col8, col9 = st.columns(3)
 
 with col7:
-    dcut  = pd.cut(doubt_f, bins=[-1, 0, 5, 999], labels=["No Doubts", "1–5 Doubts", "5+ Active"])
-    avg_dq= pd.DataFrame({"c": dcut, "q": quiz_f}).groupby("c", observed=True)["q"].mean().round(1)
-    cnt_dq= pd.DataFrame({"c": dcut, "q": quiz_f}).groupby("c", observed=True)["q"].count()
+    d_lbls = ["No Doubts", "1-5 Doubts", "5+ Active"]
+    dcut   = pd.cut(doubt_f, bins=[-1, 0, 5, 999], labels=d_lbls)
+    tmp_d  = pd.DataFrame({"c": dcut, "q": quiz_f})
+    avg_dq = tmp_d.groupby("c", observed=False)["q"].mean().reindex(d_lbls).fillna(0).round(1)
+    cnt_dq = tmp_d.groupby("c", observed=False)["q"].count().reindex(d_lbls).fillna(0)
+    act_d  = avg_dq > 0
+    d_lbl  = avg_dq.index[act_d].tolist()
+    d_vals = avg_dq[act_d].values
+    d_cnts = cnt_dq[act_d].values
+    d_clrs = [BAR_COLORS[i] for i, ok in enumerate(act_d) if ok]
 
     fig, ax = plt.subplots(figsize=(5, 4))
-    bars = ax.bar(avg_dq.index.tolist(), avg_dq.values, color=BAR_COLORS, edgecolor="none", width=0.5)
-    ax.set_title("Doubts Raised → Quiz Score")
+    bars = ax.bar(d_lbl, d_vals, color=d_clrs, edgecolor="none", width=0.5)
+    ax.set_title("Doubts Raised -> Quiz Score")
     ax.set_ylabel("Avg Quiz Score")
-    ax.set_ylim(0, avg_dq.max() * 1.35)
+    ax.set_ylim(0, max(d_vals.max(), 1) * 1.35)
     ax.yaxis.grid(True); ax.set_axisbelow(True)
-    for bar, val, cnt in zip(bars, avg_dq.values, cnt_dq.values):
+    for bar, val, cnt in zip(bars, d_vals, d_cnts):
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
-                f"{val:.1f}\n({cnt})", ha="center", va="bottom",
+                f"{val:.1f}\n({int(cnt)})", ha="center", va="bottom",
                 fontsize=9, color="#e0eaff", fontweight="bold")
     show(fig)
 
@@ -425,21 +451,27 @@ with col8:
 with col9:
     # Events vs Placement Readiness
     total_ev = hack_f + work_f + live_f
-    ecut  = pd.cut(total_ev, bins=[-1, 0, 2, 5, 999], labels=["0", "1–2", "3–5", "6+"])
-    avg_ep= pd.DataFrame({"c": ecut, "p": filt_df["Placement_Readiness"]}).groupby("c", observed=True)["p"].mean().round(1)
-    cnt_ep= pd.DataFrame({"c": ecut, "p": filt_df["Placement_Readiness"]}).groupby("c", observed=True)["p"].count()
+    ev_lbls = ["0", "1-2", "3-5", "6+"]
+    ev_clrs = [BAR_COLORS[0], BAR_COLORS[1], BAR_COLORS[2], "#a78bfa"]
+    ecut    = pd.cut(total_ev, bins=[-1, 0, 2, 5, 999], labels=ev_lbls)
+    tmp_ev  = pd.DataFrame({"c": ecut, "p": filt_df["Placement_Readiness"]})
+    avg_ep  = tmp_ev.groupby("c", observed=False)["p"].mean().reindex(ev_lbls).fillna(0).round(1)
+    cnt_ep  = tmp_ev.groupby("c", observed=False)["p"].count().reindex(ev_lbls).fillna(0)
+    act_ev  = avg_ep > 0
+    ep_lbl  = avg_ep.index[act_ev].tolist()
+    ep_vals = avg_ep[act_ev].values
+    ep_cnts = cnt_ep[act_ev].values
+    ep_clrs = [ev_clrs[i] for i, ok in enumerate(act_ev) if ok]
 
-    ev_colors = [BAR_COLORS[0], BAR_COLORS[1], BAR_COLORS[2], "#a78bfa"]
     fig, ax = plt.subplots(figsize=(5, 4))
-    bars = ax.bar(avg_ep.index.tolist(), avg_ep.values,
-                  color=ev_colors[:len(avg_ep)], edgecolor="none", width=0.5)
-    ax.set_title("Events Attended → Placement Readiness")
+    bars = ax.bar(ep_lbl, ep_vals, color=ep_clrs, edgecolor="none", width=0.5)
+    ax.set_title("Events Attended -> Placement Readiness")
     ax.set_xlabel("Total Events"); ax.set_ylabel("Placement Readiness")
-    ax.set_ylim(0, avg_ep.max() * 1.35)
+    ax.set_ylim(0, max(ep_vals.max(), 1) * 1.35)
     ax.yaxis.grid(True); ax.set_axisbelow(True)
-    for bar, val, cnt in zip(bars, avg_ep.values, cnt_ep.values):
+    for bar, val, cnt in zip(bars, ep_vals, ep_cnts):
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
-                f"{val:.1f}\n({cnt})", ha="center", va="bottom",
+                f"{val:.1f}\n({int(cnt)})", ha="center", va="bottom",
                 fontsize=9, color="#e0eaff", fontweight="bold")
     show(fig)
 
