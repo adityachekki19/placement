@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 import warnings
+import os
 warnings.filterwarnings("ignore")
 
 # =========================================================
@@ -92,13 +93,31 @@ def safe(df, col):
 # =========================================================
 @st.cache_data(show_spinner=False)
 def load_and_compute():
+    # ---- Get the correct path to data.csv ----
+    # This handles both local development and Streamlit Cloud
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(script_dir, "data.csv")
+    
+    # Fallback to current working directory if not found
+    if not os.path.exists(data_path):
+        data_path = "data.csv"
+    
     # ---- load ----
     try:
-        df = pd.read_csv("data.csv", sep=",")
+        df = pd.read_csv(data_path, sep=",")
         if df.shape[1] < 2:
             raise ValueError("too few columns")
-    except Exception:
-        df = pd.read_csv("data.csv", sep="\t")
+    except FileNotFoundError:
+        st.error(f"❌ `data.csv` not found at: {data_path}")
+        st.error(f"Current working directory: {os.getcwd()}")
+        st.error(f"Script directory: {script_dir}")
+        st.stop()
+    except Exception as e:
+        try:
+            df = pd.read_csv(data_path, sep="\t")
+        except Exception as e2:
+            st.error(f"❌ Failed to read data.csv: {e2}")
+            st.stop()
 
     df.columns = (df.columns.str.strip()
                   .str.replace(" ", "_")
@@ -177,11 +196,8 @@ def load_and_compute():
 with st.spinner("⏳ Loading data.csv …"):
     try:
         df_full, COLS = load_and_compute()
-    except FileNotFoundError:
-        st.error("❌ `data.csv` not found. Place it in the same folder as `app.py`.")
-        st.stop()
-    except Exception as exc:
-        st.error(f"❌ Failed to read data.csv: {exc}")
+    except Exception as e:
+        st.error(f"❌ Error loading data: {e}")
         st.stop()
 
 # =========================================================
