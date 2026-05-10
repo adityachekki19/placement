@@ -255,17 +255,20 @@ with col1:
     a_cnts = cnt_q[act].values
     a_clrs = [BAR_COLORS[i] for i, ok in enumerate(act) if ok]
 
-    fig, ax = plt.subplots(figsize=(6, 4))
-    bars = ax.bar(a_lbl, a_vals, color=a_clrs, edgecolor="none", width=0.5)
-    ax.set_title("Avg Quiz Score by Attendance Band")
-    ax.set_ylabel("Avg Quiz Score")
-    ax.set_ylim(0, max(a_vals.max(), 1) * 1.35)
-    ax.yaxis.grid(True); ax.set_axisbelow(True)
-    for bar, val, cnt in zip(bars, a_vals, a_cnts):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
-                f"{val:.1f}\n({int(cnt)})", ha="center", va="bottom",
-                fontsize=9, color="#e0eaff", fontweight="bold")
-    show(fig)
+    if len(a_vals) == 0:
+        st.warning("No attendance data in current filter range.")
+    else:
+        fig, ax = plt.subplots(figsize=(6, 4))
+        bars = ax.bar(a_lbl, a_vals, color=a_clrs, edgecolor="none", width=0.5)
+        ax.set_title("Avg Quiz Score by Attendance Band")
+        ax.set_ylabel("Avg Quiz Score")
+        ax.set_ylim(0, float(a_vals.max()) * 1.35 or 10)
+        ax.yaxis.grid(True); ax.set_axisbelow(True)
+        for bar, val, cnt in zip(bars, a_vals, a_cnts):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
+                    f"{val:.1f}\n({int(cnt)})", ha="center", va="bottom",
+                    fontsize=9, color="#e0eaff", fontweight="bold")
+        show(fig)
 
 with col2:
     fig, ax = plt.subplots(figsize=(6, 4))
@@ -309,17 +312,20 @@ with col3:
     e_cnts = cnt_e[act_l].values
     e_clrs = [BAR_COLORS[i] for i, ok in enumerate(act_l) if ok]
 
-    fig, ax = plt.subplots(figsize=(6, 4))
-    bars = ax.bar(e_lbl, e_vals, color=e_clrs, edgecolor="none", width=0.5)
-    ax.set_title("Login Frequency -> Engagement Score")
-    ax.set_ylabel("Avg Engagement Score")
-    ax.set_ylim(0, max(e_vals.max(), 1) * 1.35)
-    ax.yaxis.grid(True); ax.set_axisbelow(True)
-    for bar, val, cnt in zip(bars, e_vals, e_cnts):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
-                f"{val:.1f}\n({int(cnt)})", ha="center", va="bottom",
-                fontsize=9, color="#e0eaff", fontweight="bold")
-    show(fig)
+    if len(e_vals) == 0:
+        st.warning("No login frequency data in current filter range.")
+    else:
+        fig, ax = plt.subplots(figsize=(6, 4))
+        bars = ax.bar(e_lbl, e_vals, color=e_clrs, edgecolor="none", width=0.5)
+        ax.set_title("Login Frequency -> Engagement Score")
+        ax.set_ylabel("Avg Engagement Score")
+        ax.set_ylim(0, float(e_vals.max()) * 1.35 or 10)
+        ax.yaxis.grid(True); ax.set_axisbelow(True)
+        for bar, val, cnt in zip(bars, e_vals, e_cnts):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
+                    f"{val:.1f}\n({int(cnt)})", ha="center", va="bottom",
+                    fontsize=9, color="#e0eaff", fontweight="bold")
+        show(fig)
 
 with col4:
     tcut  = pd.cut(time_f, bins=[0, 5, 15, 30, 100], labels=["<5h", "5–15h", "15–30h", ">30h"])
@@ -382,17 +388,20 @@ with col6:
     v_cnts = cnt_vq[act_v].values
     v_clrs = [BAR_COLORS[i] for i, ok in enumerate(act_v) if ok]
 
-    fig, ax = plt.subplots(figsize=(6, 4))
-    bars = ax.bar(v_lbl, v_vals, color=v_clrs, edgecolor="none", width=0.5)
-    ax.set_title("Video Completion -> Quiz Score")
-    ax.set_ylabel("Avg Quiz Score")
-    ax.set_ylim(0, max(v_vals.max(), 1) * 1.35)
-    ax.yaxis.grid(True); ax.set_axisbelow(True)
-    for bar, val, cnt in zip(bars, v_vals, v_cnts):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
-                f"{val:.1f}\n({int(cnt)})", ha="center", va="bottom",
-                fontsize=9, color="#e0eaff", fontweight="bold")
-    show(fig)
+    if len(v_vals) == 0:
+        st.warning("No video completion data in current filter range.")
+    else:
+        fig, ax = plt.subplots(figsize=(6, 4))
+        bars = ax.bar(v_lbl, v_vals, color=v_clrs, edgecolor="none", width=0.5)
+        ax.set_title("Video Completion -> Quiz Score")
+        ax.set_ylabel("Avg Quiz Score")
+        ax.set_ylim(0, float(v_vals.max()) * 1.35 or 10)
+        ax.yaxis.grid(True); ax.set_axisbelow(True)
+        for bar, val, cnt in zip(bars, v_vals, v_cnts):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
+                    f"{val:.1f}\n({int(cnt)})", ha="center", va="bottom",
+                    fontsize=9, color="#e0eaff", fontweight="bold")
+        show(fig)
 
 st.info("🎥 Students completing >80% of videos score significantly higher in quizzes.")
 
@@ -417,17 +426,20 @@ with col7:
     d_cnts = cnt_dq[act_d].values
     d_clrs = [BAR_COLORS[i] for i, ok in enumerate(act_d) if ok]
 
-    fig, ax = plt.subplots(figsize=(5, 4))
-    bars = ax.bar(d_lbl, d_vals, color=d_clrs, edgecolor="none", width=0.5)
-    ax.set_title("Doubts Raised -> Quiz Score")
-    ax.set_ylabel("Avg Quiz Score")
-    ax.set_ylim(0, max(d_vals.max(), 1) * 1.35)
-    ax.yaxis.grid(True); ax.set_axisbelow(True)
-    for bar, val, cnt in zip(bars, d_vals, d_cnts):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
-                f"{val:.1f}\n({int(cnt)})", ha="center", va="bottom",
-                fontsize=9, color="#e0eaff", fontweight="bold")
-    show(fig)
+    if len(d_vals) == 0:
+        st.warning("No doubt data in current filter range.")
+    else:
+        fig, ax = plt.subplots(figsize=(5, 4))
+        bars = ax.bar(d_lbl, d_vals, color=d_clrs, edgecolor="none", width=0.5)
+        ax.set_title("Doubts Raised -> Quiz Score")
+        ax.set_ylabel("Avg Quiz Score")
+        ax.set_ylim(0, float(d_vals.max()) * 1.35 or 10)
+        ax.yaxis.grid(True); ax.set_axisbelow(True)
+        for bar, val, cnt in zip(bars, d_vals, d_cnts):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
+                    f"{val:.1f}\n({int(cnt)})", ha="center", va="bottom",
+                    fontsize=9, color="#e0eaff", fontweight="bold")
+        show(fig)
 
 with col8:
     # Resolution funnel as horizontal bars
@@ -463,17 +475,20 @@ with col9:
     ep_cnts = cnt_ep[act_ev].values
     ep_clrs = [ev_clrs[i] for i, ok in enumerate(act_ev) if ok]
 
-    fig, ax = plt.subplots(figsize=(5, 4))
-    bars = ax.bar(ep_lbl, ep_vals, color=ep_clrs, edgecolor="none", width=0.5)
-    ax.set_title("Events Attended -> Placement Readiness")
-    ax.set_xlabel("Total Events"); ax.set_ylabel("Placement Readiness")
-    ax.set_ylim(0, max(ep_vals.max(), 1) * 1.35)
-    ax.yaxis.grid(True); ax.set_axisbelow(True)
-    for bar, val, cnt in zip(bars, ep_vals, ep_cnts):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
-                f"{val:.1f}\n({int(cnt)})", ha="center", va="bottom",
-                fontsize=9, color="#e0eaff", fontweight="bold")
-    show(fig)
+    if len(ep_vals) == 0:
+        st.warning("No event data in current filter range.")
+    else:
+        fig, ax = plt.subplots(figsize=(5, 4))
+        bars = ax.bar(ep_lbl, ep_vals, color=ep_clrs, edgecolor="none", width=0.5)
+        ax.set_title("Events Attended -> Placement Readiness")
+        ax.set_xlabel("Total Events"); ax.set_ylabel("Placement Readiness")
+        ax.set_ylim(0, float(ep_vals.max()) * 1.35 or 10)
+        ax.yaxis.grid(True); ax.set_axisbelow(True)
+        for bar, val, cnt in zip(bars, ep_vals, ep_cnts):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
+                    f"{val:.1f}\n({int(cnt)})", ha="center", va="bottom",
+                    fontsize=9, color="#e0eaff", fontweight="bold")
+        show(fig)
 
 st.success("🧠 Growth Mindset: Students raising 5+ doubts score 12–18 points higher. Asking doubts = active engagement.")
 
