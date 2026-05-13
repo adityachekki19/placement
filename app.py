@@ -145,7 +145,7 @@ df["Segment"] = np.select(
 # ─────────────────────────────────────────
 # SIDEBAR FILTERS
 # ─────────────────────────────────────────
-st.sidebar.header("🔍 Filters")
+st.sidebar.header(" Filters")
 
 filt_df = df.copy()
 
@@ -164,7 +164,7 @@ filt_df = filt_df[att_f.reindex(filt_df.index, fill_value=0).between(att_min, at
 
 st.sidebar.markdown(f"**Showing {len(filt_df)} / {len(df)} students**")
 
-with st.sidebar.expander("📋 Dataset Preview"):
+with st.sidebar.expander(" Dataset Preview"):
     st.dataframe(filt_df.head(10))
 
 # filtered series
@@ -223,7 +223,7 @@ def show(fig):
 # ─────────────────────────────────────────
 # KPIs
 # ─────────────────────────────────────────
-st.header("📊 Overview")
+st.header("Overview")
 
 k1, k2, k3, k4, k5, k6 = st.columns(6)
 k1.metric("Avg Attendance",   f"{att_f.mean():.1f}%")
@@ -238,7 +238,7 @@ st.markdown("---")
 # ─────────────────────────────────────────
 # SECTION 1 — ATTENDANCE vs QUIZ
 # ─────────────────────────────────────────
-st.header("📌 1. Attendance vs Quiz Performance")
+st.header("1. Attendance vs Quiz Performance")
 
 col1, col2 = st.columns(2)
 
@@ -289,14 +289,14 @@ with col2:
     ax.legend(fontsize=8); ax.grid(True)
     show(fig)
 
-st.success("📈 Insight: Students with >80% attendance score 15–22 points higher. Consistency beats intelligence.")
+st.success("Insight: Students with >80% attendance score 15–22 points higher. Consistency beats intelligence.")
 
 st.markdown("---")
 
 # ─────────────────────────────────────────
 # SECTION 2 — LOGIN FREQUENCY & TIME SPENT
 # ─────────────────────────────────────────
-st.header("💻 2. LMS Usage — Login Frequency & Time Spent")
+st.header("2. LMS Usage — Login Frequency & Time Spent")
 
 col3, col4 = st.columns(2)
 
@@ -361,7 +361,7 @@ st.markdown("---")
 # ─────────────────────────────────────────
 # SECTION 3 — VIDEO & QUIZ HEATMAP
 # ─────────────────────────────────────────
-st.header("🎥 3. Learning Quality — Video Completion & Quiz")
+st.header("3. Learning Quality — Video Completion & Quiz")
 
 col5, col6 = st.columns(2)
 
@@ -412,14 +412,14 @@ with col6:
                     fontsize=9, color="#e0eaff", fontweight="bold")
         show(fig)
 
-st.info("🎥 Students completing >80% of videos score significantly higher in quizzes.")
+st.info("Students completing >80% of videos score significantly higher in quizzes.")
 
 st.markdown("---")
 
 # ─────────────────────────────────────────
 # SECTION 4 — DOUBTS
 # ─────────────────────────────────────────
-st.header("❓ 4. Doubt Behaviour — Growth Mindset Indicator")
+st.header(" 4. Doubt Behaviour — Growth Mindset Indicator")
 
 col7, col8, col9 = st.columns(3)
 
@@ -499,14 +499,14 @@ with col9:
                     fontsize=9, color="#e0eaff", fontweight="bold")
         show(fig)
 
-st.success("🧠 Growth Mindset: Students raising 5+ doubts score 12–18 points higher. Asking doubts = active engagement.")
+st.success("Growth Mindset: Students raising 5+ doubts score 12–18 points higher. Asking doubts = active engagement.")
 
 st.markdown("---")
 
 # ─────────────────────────────────────────
 # SECTION 5 — EVENTS PIE
 # ─────────────────────────────────────────
-st.header("🏆 5. Event Participation")
+st.header("5. Event Participation")
 
 ev_data = {
     "Hackathons":    hack_f.sum(),
@@ -544,7 +544,7 @@ st.markdown("---")
 # ─────────────────────────────────────────
 # SECTION 6 — SEGMENTATION
 # ─────────────────────────────────────────
-st.header("🧠 6. Student Segmentation")
+st.header("6. Student Segmentation")
 
 seg_counts = filt_df["Segment"].value_counts()
 seg_cfg = {
@@ -601,31 +601,31 @@ st.markdown("---")
 # ─────────────────────────────────────────
 # SECTION 7 — RISK DETECTION
 # ─────────────────────────────────────────
-st.header("⚠️ 7. High-Risk Students — Early Warning")
+st.header("7. High-Risk Students — Early Warning")
 
 risk_mask = (att_f < 60) & (quiz_f < 50)
 risk_df   = filt_df[risk_mask.values]
 rc        = len(risk_df)
 
 r1, r2, r3 = st.columns(3)
-r1.metric("🚨 High-Risk Students", rc, delta=f"{rc/N*100:.1f}% of cohort", delta_color="inverse")
-r2.metric("⚠️ Disengaged",         int(seg_counts.get("Disengaged", 0)))
-r3.metric("📊 At-Risk Rate",        f"{rc/N*100:.1f}%")
+r1.metric("High-Risk Students", rc, delta=f"{rc/N*100:.1f}% of cohort", delta_color="inverse")
+r2.metric("Disengaged",         int(seg_counts.get("Disengaged", 0)))
+r3.metric("At-Risk Rate",        f"{rc/N*100:.1f}%")
 
 if rc > 0:
-    st.error(f"🚨 {rc} students have attendance <60% AND quiz score <50 — assign mentors immediately.")
+    st.error(f" {rc} students have attendance <60% AND quiz score <50 — assign mentors immediately.")
     show_cols = [c for c in [c_sid, c_dept, c_att, c_quiz, "Engagement_Score", "Segment"]
                  if c and c in risk_df.columns]
     st.dataframe(risk_df[show_cols].reset_index(drop=True), use_container_width=True)
 else:
-    st.success("✅ No high-risk students in current filter.")
+    st.success(" No high-risk students in current filter.")
 
 st.markdown("---")
 
 # ─────────────────────────────────────────
 # SECTION 8 — LEADERBOARD
 # ─────────────────────────────────────────
-st.header("🏅 8. Engagement Leaderboard — Top 10")
+st.header(" 8. Engagement Leaderboard — Top 10")
 
 top10 = (filt_df.sort_values("Engagement_Score", ascending=False)
          .head(10).reset_index(drop=True))
@@ -669,7 +669,7 @@ st.markdown("---")
 # ─────────────────────────────────────────
 # SECTION 9 — PLACEMENT READINESS DIST
 # ─────────────────────────────────────────
-st.header("🚀 9. Placement Readiness Distribution")
+st.header("9. Placement Readiness Distribution")
 
 pr_data = filt_df["Placement_Readiness"].dropna()
 if len(pr_data) == 0:
@@ -718,12 +718,12 @@ st.markdown("---")
 # ─────────────────────────────────────────
 # MASTER INSIGHT
 # ─────────────────────────────────────────
-st.header("💡 Master Insight")
+st.header("Master Insight")
 
 col_m1, col_m2 = st.columns(2)
 with col_m1:
     st.error("""
-❌ **Myth — What students think:**
+ **Myth — What students think:**
 - Watching videos = learning
 - High CGPA = placement ready
 - Time on platform = engagement
@@ -731,7 +731,7 @@ with col_m1:
 """)
 with col_m2:
     st.success("""
-✅ **Reality — What actually drives placement:**
+**Reality — What actually drives placement:**
 - Watch + Quiz + Doubt + Apply = Real learning
 - Engagement Score > CGPA for placement
 - Active days + doubts = true engagement
